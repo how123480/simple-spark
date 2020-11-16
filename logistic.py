@@ -82,8 +82,8 @@ if __name__ == "__main__":
 	data = sc.textFile("/cccs_hw4/data_banknote_authentication.txt")
 	parsedData = data.map(mapper)
 	LR_model = CustomLR(learning_rate, \
-											iteration, \
-											sample_ratio)
+		iteration, \
+		sample_ratio)
 
 	w,b = LR_model.train(parsedData)
 	print("weight: ", w)

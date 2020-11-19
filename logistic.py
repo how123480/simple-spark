@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import math
 SPARK_HOME = "/opt/bitnami/spark" # Set this to wherever you have compiled Spark
 os.environ["SPARK_HOME"] = SPARK_HOME # Add Spark path
@@ -21,19 +22,22 @@ class CustomLR():
 		self.lr = learning_rate
 		self.ratio = sample_ratio
 
+	def _f(self,x):
+		return 1/(1+np.exp(-(self.w.dot(x)+self.b)))
 	def predict(self,x):
 		#print("p: ", 1/(1+np.exp(-(np.dot(self.w,x)+self.b))))
-		return 1 if 1/(1+np.exp(-(self.w.dot(x)+self.b))) > 0.5 else 0
+		return 1 if self._f(x) > 0.5 else 0
 
 	def gradient_w(self, data):
-		return data.map(lambda x:((self.predict(x.features)-x.label)*x.features)).reduce(lambda x,y:(x+y))
+		return data.map(lambda x:((self._f(x.features)-x.label)*x.features)).reduce(lambda x,y:(x+y))
 
 	def gradient_b(self, data):
-		return data.map(lambda x:(self.predict(x.features)-x.label)).reduce(lambda x,y:(x+y))
+		return data.map(lambda x:(self._f(x.features)-x.label)).reduce(lambda x,y:(x+y))
 
 	def train(self,data):
 		for i in range(self.iter):
 			sub_data = data.sample(False,self.ratio)
+			#print(type(self.gradient_w(sub_data)))
 			self.w -= (self.lr)* self.gradient_w(sub_data)
 			self.b -= (self.lr)* self.gradient_b(sub_data)
 			if(i % 3 == 0):
@@ -69,6 +73,7 @@ def mapper(line):
     return LabeledPoint(label, np.array(features))
 
 if __name__ == "__main__":
+	start_time = time.time()
 	sc = getSparkContext()
 	print("configuration:")
 	learning_rate = 0.01
@@ -88,3 +93,4 @@ if __name__ == "__main__":
 	w,b = LR_model.train(parsedData)
 	print("weight: ", w)
 	print("bias: ", b)
+	print("Time {}(s)".format(time.time() - start_time))
